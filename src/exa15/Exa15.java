@@ -25,7 +25,9 @@ import java.util.logging.Logger;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
-
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 /**
  *
  * @author oracle
@@ -51,37 +53,69 @@ public class Exa15 {
         conexion.close();
     }
 
-    public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException, SQLException {
+    public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException, SQLException, XMLStreamException {
         getConexion();
         File file = new File("/home/oracle/Desktop/ProbaExer4/platoss");
         FileInputStream leer2 = new FileInputStream(file);
         ObjectInputStream leerOIS = new ObjectInputStream(leer2);
-
+        
+        File fil= new File("/home/oracle/Desktop/ProbaExer4/totalgraxas.xml");
+	FileWriter escribir = new FileWriter(fil);
+        
+        XMLOutputFactory outputFactory = XMLOutputFactory.newFactory();
+        XMLStreamWriter writer = outputFactory.createXMLStreamWriter(escribir); 
+        
+        int totgrasas; 
         Platos objj = new Platos();
         //Necesario meter en el bucle para que lea todo
+        writer.writeStartDocument("1.0");
+        writer.writeStartElement("Platos");
         while ((objj = (Platos) leerOIS.readObject()) != null) {
             System.out.println(objj);
-             
+             totgrasas=0;//necesario porque si no en la siguiente se suma lagrasa del anterior
 
                 Statement stm = conexion.createStatement();
                 ResultSet rs = stm.executeQuery("select * from composicion where codp='"+objj.getCodigop()+"'");
                 Statement stm1= conexion.createStatement();
                 
+            
                 
 
-                while (rs.next()) {
+                while (rs.next()) { //Va de fila en fila
                 ResultSet rss = stm1.executeQuery("select graxa from componentes where CODC='"+rs.getString(2)+"'");   
                 rss.next();
                 
                     System.out.print("codigo do componente : " + rs.getString(2) + "-> graxa por cada 100 gr="+rss.getInt(1) + "\nPeso: " + rs.getInt(3) + "\n");
-
+                    System.out.println("Total de graxa do componente= "+(rss.getInt(1)*rs.getInt(3)/100));
+                    totgrasas+=(rss.getInt(1)*rs.getInt(3)/100); // =+ para que lo haga cada vez
+                    
+                    
+           
                 }
-
-
+            System.out.println("TOTAL DE GRASAS "+totgrasas+"\n"+"\n");
+            
+            
+           
+            writer.writeStartElement("Plato");
+            writer.writeAttribute("codigo", objj.getCodigop());
+            writer.writeEndElement();
+            writer.writeStartElement("nombreP");
+            writer.writeCharacters(objj.getNomep());
+            writer.writeEndElement(); 
+            writer.writeStartElement("grasaTotal");
+            writer.writeCharacters(Integer.toString(totgrasas));
+            writer.writeEndElement();
+           
+            
+            
         }
+        writer.writeEndElement();      
+        writer.writeEndDocument();
+        writer.close();  
         leerOIS.close();
         leer2.close();
         closeConexion();
-
+            
+        
     }
 }
